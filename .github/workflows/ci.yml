@@ -1,0 +1,58 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: bridge-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out sources
+        uses: actions/checkout@v6
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+
+      - name: Validate wrapper and configure Gradle
+        uses: gradle/actions/setup-gradle@v6
+        with:
+          cache-provider: basic
+
+      - name: Build and test
+        run: |
+          chmod +x gradlew
+          echo "BRIDGE_VERSION=$(./gradlew -q printVersion --no-daemon)" >> "$GITHUB_ENV"
+          ./gradlew clean build releaseBundle writeReleaseChecksums --no-daemon --console=plain
+
+      - name: Verify release artifacts
+        run: >-
+          python ops/verify-release-artifacts.py
+          --plugin "build/release/Bridge-$BRIDGE_VERSION.jar"
+          --api "build/release/bridge-api-$BRIDGE_VERSION.jar"
+          --expect-version "$BRIDGE_VERSION"
+
+      - name: Verify reproducible plugin JAR
+        shell: bash
+        run: |
+          expected="$(sha256sum "build/libs/Bridge-$BRIDGE_VERSION.jar" | cut -d ' ' -f 1)"
+          ./gradlew shadowJar --rerun-tasks --no-daemon --console=plain
+          actual="$(sha256sum "build/libs/Bridge-$BRIDGE_VERSION.jar" | cut -d ' ' -f 1)"
+          test "$expected" = "$actual"
+
+      - name: Upload verified build artifacts
+        uses: actions/upload-artifact@v7
+        with:
+          name: Bridge-${{ env.BRIDGE_VERSION }}
+          path: build/release/*
+          if-no-files-found: error

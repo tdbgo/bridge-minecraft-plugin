@@ -1,0 +1,239 @@
+openapi: 3.1.0
+info:
+  title: Bridge HTTP API
+  version: 1.2.0
+  description: Typed action gateway exposed by the Bridge Paper plugin. Bearer authentication accepts configured opaque tokens or enabled JWT access tokens.
+servers:
+  - url: http://127.0.0.1:25585
+    description: Default loopback listener; use an HTTPS private proxy for remote access.
+paths:
+  /v1/health:
+    get:
+      operationId: getBridgeHealth
+      summary: Check Bridge liveness and configuration readiness
+      responses:
+        "200":
+          description: Current Bridge health
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+  /v1/actions:
+    get:
+      operationId: listBridgeActions
+      summary: List actions visible to the authenticated client
+      security:
+        - bearerAuth: []
+        - bridgeToken: []
+      responses:
+        "200":
+          description: Scoped action descriptors
+          content:
+            application/json:
+              schema:
+                type: object
+                required: [actions]
+                properties:
+                  actions:
+                    type: array
+                    items:
+                      $ref: "#/components/schemas/ActionDescriptor"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+    post:
+      operationId: executeBridgeAction
+      summary: Execute one typed action
+      security:
+        - bearerAuth: []
+        - bridgeToken: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ActionRequest"
+      responses:
+        "200":
+          description: Action completed successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ActionResult"
+        "400":
+          $ref: "#/components/responses/ActionFailure"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/ActionFailure"
+        "404":
+          $ref: "#/components/responses/ActionFailure"
+        "409":
+          $ref: "#/components/responses/ActionFailure"
+        "413":
+          $ref: "#/components/responses/ActionFailure"
+        "415":
+          $ref: "#/components/responses/ActionFailure"
+        "429":
+          $ref: "#/components/responses/ActionFailure"
+        "500":
+          $ref: "#/components/responses/ActionFailure"
+        "503":
+          $ref: "#/components/responses/ActionFailure"
+        "504":
+          $ref: "#/components/responses/ActionFailure"
+  /v1/status:
+    get:
+      operationId: getBridgeStatus
+      summary: Read the latest aggregate Paper snapshot
+      security:
+        - bridgeMetricsBearer: []
+        - bridgeMetricsToken: []
+      responses:
+        "200":
+          description: Aggregate server status
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ActionFailure"
+  /metrics:
+    get:
+      operationId: getBridgeMetrics
+      summary: Read Prometheus exposition data
+      security:
+        - bridgeMetricsBearer: []
+        - bridgeMetricsToken: []
+      responses:
+        "200":
+          description: Prometheus text exposition
+          content:
+            text/plain:
+              schema:
+                type: string
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "503":
+          $ref: "#/components/responses/ActionFailure"
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: opaque-token-or-JWT
+    bridgeToken:
+      type: apiKey
+      in: header
+      name: X-Bridge-Token
+    bridgeMetricsToken:
+      type: apiKey
+      in: header
+      name: X-Bridge-Metrics-Token
+    bridgeMetricsBearer:
+      type: http
+      scheme: bearer
+      description: Separate static metrics credential; action JWTs are not accepted.
+  responses:
+    Unauthorized:
+      description: Missing or invalid credential
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ActionResult"
+    ActionFailure:
+      description: Stable Bridge or action failure
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/ActionResult"
+  schemas:
+    Health:
+      type: object
+      required: [ok, service, apiVersion, version, time, tokenConfigured]
+      properties:
+        ok:
+          const: true
+        service:
+          const: Bridge
+        apiVersion:
+          const: v1
+        version:
+          type: string
+        time:
+          type: string
+          format: date-time
+        tokenConfigured:
+          type: boolean
+        httpClientsConfigured:
+          type: integer
+          minimum: 0
+        jwtEnabled:
+          type: boolean
+        jwtReady:
+          type: boolean
+        eventsEnabled:
+          type: boolean
+        eventsState:
+          enum: [disabled, running, not_running]
+        metricsEnabled:
+          type: boolean
+        metricsTokenConfigured:
+          type: boolean
+        metricsReady:
+          type: boolean
+        relayEnabled:
+          type: boolean
+        relayState:
+          type: string
+        relayQueuedEvents:
+          type: integer
+          minimum: 0
+        relayEventGap:
+          type: boolean
+    ActionDescriptor:
+      type: object
+      required: [name, version, description, risk]
+      properties:
+        name:
+          type: string
+          pattern: "^[a-z0-9][a-z0-9_.:-]{0,127}$"
+        version:
+          type: string
+        description:
+          type: string
+        risk:
+          enum: [read_only, mutating, destructive]
+    ActionRequest:
+      type: object
+      required: [requestId, action]
+      properties:
+        requestId:
+          type: string
+          minLength: 1
+          maxLength: 160
+          pattern: "^[A-Za-z0-9_.:-]+$"
+        action:
+          type: string
+          minLength: 1
+          maxLength: 128
+      additionalProperties: true
+    ActionResult:
+      type: object
+      required: [ok, status, code, message, data]
+      properties:
+        ok:
+          type: boolean
+        status:
+          enum: [succeeded, failed]
+        code:
+          type: string
+        message:
+          type: string
+        requestId:
+          type: string
+        data:
+          type: object
+          additionalProperties: true

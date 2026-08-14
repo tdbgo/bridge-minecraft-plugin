@@ -1,0 +1,132 @@
+config-version: 7
+
+# First installation: create one token file and one scoped http.clients entry.
+# Leave events, JWT, relay, metrics and mutating actions disabled until the
+# read-only REST quick start succeeds. See docs/QUICKSTART.md in the release bundle.
+
+http:
+  enabled: true
+  # Keep the first version local by default. Put a reverse proxy/VPN in front before binding publicly.
+  host: "127.0.0.1"
+  port: 25585
+  # Safety interlock. Keep false when using the recommended private tunnel.
+  allowNonLoopback: false
+  # Legacy single-client credential. Existing installations remain compatible;
+  # new installations should use the scoped clients list below.
+  token: "CHANGE_ME"
+  legacyRequestsPerMinute: 600
+  legacyMaxConcurrent: 4
+  # One credential per web backend. Prefer tokenFile and grant only required actions.
+  clients: []
+  # Example:
+  # clients:
+  #   - id: "maps-production"
+  #     tokenFile: "secrets/maps-production.token"
+  #     allowedActions: ["minecraft.player_status", "minecraft.teleport_player"]
+  #     allowedEvents: ["minecraft.player_joined", "minecraft.player_left"]
+  #     requestsPerMinute: 120
+  #     maxConcurrent: 4
+  #     maxEventConnections: 2
+  maxRequestBytes: 32768
+  workerThreads: 2
+  # Maximum time the HTTP request waits for an action result. The action may still complete after a timeout.
+  actionTimeoutMillis: 5000
+
+events:
+  # Optional WebSocket event endpoint. It uses a separate port so the minimal
+  # HTTP action server remains unchanged. Route both behind one HTTPS/WSS proxy if desired.
+  enabled: false
+  host: "127.0.0.1"
+  port: 25586
+  allowNonLoopback: false
+  maxMessageBytes: 16384
+  replayMaxEvents: 2048
+  replayMaxBatch: 512
+  maxPendingMessages: 256
+  connectionLostSeconds: 30
+
+jwt:
+  # Optional signed access-token verification. Static client tokens remain supported.
+  enabled: false
+  issuer: ""
+  audience: ""
+  # Configure exactly one source. Remote JWKS must use HTTPS except for an
+  # explicitly enabled loopback development endpoint.
+  jwksUrl: ""
+  jwksFile: ""
+  allowInsecureLoopbackJwks: false
+  algorithm: "RS256"
+  requiredType: "at+jwt"
+  scopeClaim: "scope"
+  clientIdClaim: "client_id"
+  actionScopePrefix: "bridge:action:"
+  eventScopePrefix: "bridge:event:"
+  # JWT claims are intersected with these local rules and can never expand them.
+  allowedActions: []
+  allowedEvents: []
+  requestsPerMinute: 120
+  maxConcurrent: 4
+  maxEventConnections: 2
+  clockSkewSeconds: 30
+  maxLifetimeSeconds: 3600
+  maxTokenChars: 8192
+  maxIdentities: 4096
+  identityTtlSeconds: 900
+
+relay:
+  # Optional outbound transport for hosts that cannot accept inbound traffic.
+  # Disabled by default so a fresh public install never contacts an external
+  # service without an operator decision and a compatible receiver.
+  enabled: false
+  baseUrl: ""
+  serverName: "server-1"
+  identityFile: "secrets/relay-identity.json"
+  # Development-only interlock. Production relay URLs must use HTTPS.
+  allowInsecureLoopback: false
+  connectTimeoutMillis: 5000
+  pollTimeoutMillis: 25000
+  actionTimeoutMillis: 7000
+  minBackoffMillis: 1000
+  maxBackoffMillis: 30000
+  maxResponseBytes: 262144
+  # Each relay deployment must explicitly select its remotely callable actions.
+  allowedActions: []
+  # Event delivery uses the same outbound long-poll connection. Existing
+  # installations receive no relay events until topics are explicitly selected.
+  allowedEvents: []
+  eventQueueSize: 2048
+  eventBatchSize: 128
+
+requests:
+  # In-memory idempotency window for repeated requestId values.
+  cacheTtlSeconds: 300
+  # Bounds memory use if a trusted caller is faulty or compromised.
+  cacheMaxEntries: 4096
+
+metrics:
+  enabled: false
+  # Existing installations without this key retain the legacy playcity prefix.
+  namespace: "bridge"
+  # Backward-compatible inline credential. Prefer tokenFile in production.
+  # Do not configure a usable token and tokenFile at the same time.
+  token: "CHANGE_ME"
+  # Relative paths resolve from plugins/Bridge. The file must contain one token
+  # of at least 32 UTF-8 bytes and must differ from http.token.
+  tokenFile: ""
+  # Paper values are sampled on the server thread and exposed as an immutable snapshot.
+  sampleIntervalTicks: 100
+  staleAfterSeconds: 30
+  # Empty means every loaded world. Entries are normalized to lower case.
+  includedWorlds: []
+
+actions:
+  teleportPlayer:
+    enabled: false
+    # Empty means all worlds after the action is enabled. Set this explicitly.
+    allowedWorlds: []
+    maxAbsXz: 30000000
+  notice:
+    # Optional compatibility actions for servers that also install Notice 3.x.
+    syncEnabled: false
+    sendEnabled: false
+    maxMessageLength: 4096

@@ -1,0 +1,40 @@
+.gradle/
+**/build/
+.staging/
+
+# Server runtime state and credentials
+plugins/
+secrets/
+.env
+.env.*
+!.env.example
+*.token
+*.secret
+*.pem
+*.key
+*.p12
+*.jks
+*.log
+*.db
+*.sqlite
+*.sqlite3
+
+# IDE and operating-system state
+.idea/
+.vscode/
+*.iml
+.DS_Store
+Thumbs.db
+
+# PLAYCITY deployment handoffs and host-specific operational helpers are retained
+# locally for operators but are not part of the reusable public plugin surface.
+docs/BLOCK-ADMIN-OBSERVABILITY-HANDOFF.md
+docs/IMPLEMENTATION-SPEC.md
+docs/OUTBOUND-RELAY.md
+docs/WEB-SERVICE-HANDOFF.md
+ops/bridge-reverse-tunnel.ps1
+ops/install-bridge-observer-token.sh
+ops/install-web-observability.sh
+ops/set-maps-bridge-env.py
+ops/start-bridge-tunnel.ps1
+ops/verify-bridge-observability.sh

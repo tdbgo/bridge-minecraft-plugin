@@ -1,0 +1,23 @@
+name: Bridge
+version: ${version}
+main: com.playcity.bridge.BridgePlugin
+description: Typed, scoped action and event API bridge for Paper servers
+authors: [PLAYCITY BLOCK]
+api-version: "26.2"
+softdepend: [Notice]
+
+commands:
+  bridge:
+    description: Bridge remote action gateway
+    usage: /bridge <help|status|reload>
+    permission: bridge.use
+
+permissions:
+  bridge.use:
+    description: Allows checking Bridge status
+    default: op
+  bridge.admin:
+    description: Allows Bridge administration
+    default: op
+    children:
+      bridge.use: true
