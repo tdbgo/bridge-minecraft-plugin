@@ -7,6 +7,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.attribute.PosixFileAttributeView;
+import java.nio.file.attribute.PosixFilePermission;
+import java.util.EnumSet;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 
@@ -20,7 +23,7 @@ class BridgeTokenResolverTest {
     @Test
     void loadsRelativeTokenFileWithoutExposingItsPath() throws IOException {
         Path secretDirectory = Files.createDirectories(tempDirectory.resolve("secrets"));
-        Files.writeString(secretDirectory.resolve("metrics.token"), FILE_TOKEN + System.lineSeparator());
+        writeOwnerOnly(secretDirectory.resolve("metrics.token"), FILE_TOKEN + System.lineSeparator());
 
         BridgeTokenResolver.Resolution result = BridgeTokenResolver.resolve(
             "CHANGE_ME",
@@ -74,9 +77,9 @@ class BridgeTokenResolverTest {
     @Test
     void rejectsWhitespaceAndOversizedTokenFiles() throws IOException {
         Path whitespaceFile = tempDirectory.resolve("whitespace.token");
-        Files.writeString(whitespaceFile, "0123456789abcdef 0123456789abcdef");
+        writeOwnerOnly(whitespaceFile, "0123456789abcdef 0123456789abcdef");
         Path oversizedFile = tempDirectory.resolve("oversized.token");
-        Files.writeString(oversizedFile, "a".repeat(4097));
+        writeOwnerOnly(oversizedFile, "a".repeat(4097));
 
         assertEquals(
             "metrics_token_file_invalid",
@@ -91,11 +94,22 @@ class BridgeTokenResolverTest {
     @Test
     void rejectsExtraLinesInsteadOfSilentlyTrimmingThem() throws IOException {
         Path multilineFile = tempDirectory.resolve("multiline.token");
-        Files.writeString(multilineFile, FILE_TOKEN + System.lineSeparator() + System.lineSeparator());
+        writeOwnerOnly(multilineFile, FILE_TOKEN + System.lineSeparator() + System.lineSeparator());
 
         assertEquals(
             "metrics_token_file_invalid",
             BridgeTokenResolver.resolve("", multilineFile.toString(), tempDirectory).issue()
         );
+    }
+
+    private static void writeOwnerOnly(Path path, String value) throws IOException {
+        Files.writeString(path, value);
+        PosixFileAttributeView view = Files.getFileAttributeView(path, PosixFileAttributeView.class);
+        if (view != null) {
+            view.setPermissions(EnumSet.of(
+                PosixFilePermission.OWNER_READ,
+                PosixFilePermission.OWNER_WRITE
+            ));
+        }
     }
 }
