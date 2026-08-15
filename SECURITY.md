@@ -6,7 +6,7 @@ Bridge has not published a stable release yet. Security fixes are prepared for t
 
 ## Reporting a vulnerability
 
-After the public repository is created, report vulnerabilities through its private GitHub Security Advisory form under **Security > Advisories > New draft security advisory**. Do not disclose a suspected vulnerability in a public issue before maintainers have had an opportunity to investigate it.
+Report vulnerabilities through the private GitHub Security Advisory form at <https://github.com/tdbgo/bridge-minecraft-plugin> under **Security > Advisories > New draft security advisory**. Do not disclose a suspected vulnerability in a public issue before maintainers have had an opportunity to investigate it.
 
 Include the affected Bridge version, Paper and Java versions, configuration shape with all credentials removed, reproduction steps and expected security boundary. Never include bearer tokens, JWTs, relay identity files, private keys, pairing credentials, player data or private infrastructure addresses.
 

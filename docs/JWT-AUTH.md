@@ -67,4 +67,4 @@ Configure exactly one of `jwksUrl` and `jwksFile`. A local JWKS file must be a r
 - Retain static service credentials for small private deployments and recovery, but do not reuse them as JWT signing keys.
 - Define revocation outside Bridge. Short expiration limits exposure; Bridge does not currently perform token introspection or maintain a `jti` denylist.
 - Do not place tokens in WebSocket query strings. Backend clients must use the Authorization header.
-- Do not give browser code direct Bridge credentials. Product authorization and account linking remain in the PLAYCITY backend.
+- Do not give browser code direct Bridge credentials. Product authorization and account linking remain in the calling backend.
