@@ -16,6 +16,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.TimeUnit;
@@ -323,6 +324,7 @@ final class BridgeWebSocketServer extends WebSocketServer {
         private final BridgeHttpAccessController.EventPermit permit;
         private final ArrayDeque<String> pending = new ArrayDeque<>();
         private final AtomicBoolean closed = new AtomicBoolean();
+        private final AtomicBoolean closeRequested = new AtomicBoolean();
         private AutoCloseable subscription;
         private Set<String> requestedRules = Set.of();
         private final ArrayDeque<BridgeEvent> deferredEvents = new ArrayDeque<>();
@@ -369,7 +371,7 @@ final class BridgeWebSocketServer extends WebSocketServer {
                 filters = requestedRules;
                 if (permit.session().allowsEvent(event.name()) && BridgeScopeRules.matches(filters, event.name()) && replaying) {
                     if (deferredEvents.size() >= plugin.bridgeConfig().eventMaxPendingMessages()) {
-                        connection.close(CLOSE_RETRY_LATER, "event_backpressure");
+                        requestClose(CLOSE_RETRY_LATER, "event_backpressure");
                     } else {
                         deferredEvents.addLast(event);
                     }
@@ -394,11 +396,11 @@ final class BridgeWebSocketServer extends WebSocketServer {
                 return;
             }
             if (message.getBytes(StandardCharsets.UTF_8).length > plugin.bridgeConfig().eventMaxMessageBytes()) {
-                connection.close(CLOSE_TOO_BIG, "event_message_too_large");
+                requestClose(CLOSE_TOO_BIG, "event_message_too_large");
                 return;
             }
             if (pending.size() >= plugin.bridgeConfig().eventMaxPendingMessages()) {
-                connection.close(CLOSE_RETRY_LATER, "event_backpressure");
+                requestClose(CLOSE_RETRY_LATER, "event_backpressure");
                 return;
             }
             pending.addLast(message);
@@ -431,9 +433,20 @@ final class BridgeWebSocketServer extends WebSocketServer {
                 try {
                     connection.send(message);
                 } catch (RuntimeException exception) {
-                    connection.close(CLOSE_RETRY_LATER, "event_send_failed");
+                    requestClose(CLOSE_RETRY_LATER, "event_send_failed");
                     return;
                 }
+            }
+        }
+
+        private void requestClose(int code, String reason) {
+            if (!closeRequested.compareAndSet(false, true)) {
+                return;
+            }
+            try {
+                dispatcher.execute(() -> connection.close(code, reason));
+            } catch (RejectedExecutionException ignored) {
+                // The transport is already shutting down.
             }
         }
 

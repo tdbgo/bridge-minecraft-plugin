@@ -58,7 +58,7 @@ Outputs:
 The default development version is `0.5.0-SNAPSHOT`. A release candidate can be built without editing source files:
 
 ```powershell
-.\gradlew.bat releaseBundle writeReleaseChecksums -PbridgeVersion=0.5.0-rc.1 --console=plain
+.\gradlew.bat releaseBundle writeReleaseChecksums -PbridgeVersion=0.5.0-rc.2 --console=plain
 ```
 
 Checksummed artifacts are staged under `build/release`. The stricter `assembleRelease` task additionally refuses snapshot versions, undated changelog entries and unresolved project-license metadata.

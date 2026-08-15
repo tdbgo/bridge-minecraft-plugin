@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.0-rc.2 - 2026-08-15
+
+- Fixed a WebSocket lock-order deadlock when closing slow consumers after outbound event backpressure.
+
 ## 0.5.0-rc.1 - 2026-08-14
 
 - Added a provider-owned, serializer-neutral typed event API to `bridge-api`.
