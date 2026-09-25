@@ -22,7 +22,7 @@ dependencies {
     implementation("com.google.code.gson:gson:2.14.0") {
         exclude(group = "com.google.errorprone", module = "error_prone_annotations")
     }
-    implementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
+    implementation("com.nimbusds:nimbus-jose-jwt:10.10")
     implementation("org.java-websocket:Java-WebSocket:1.6.0") {
         exclude(group = "org.slf4j", module = "slf4j-api")
     }
