@@ -19,7 +19,7 @@ repositories {
 dependencies {
     compileOnly("io.papermc.paper:paper-api:26.2.build.111-stable")
     implementation(project(":bridge-api"))
-    implementation("com.google.code.gson:gson:2.14.0") {
+    implementation("com.google.code.gson:gson:2.15.0") {
         exclude(group = "com.google.errorprone", module = "error_prone_annotations")
     }
     implementation("com.nimbusds:nimbus-jose-jwt:10.9.1")
